@@ -20,6 +20,15 @@ repositories {
 dependencies {
     implementation(compose.desktop.currentOs)
 
+    implementation("org.slf4j:slf4j-simple:2.0.5")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.7.2")
+
+    implementation("com.github.twitch4j:twitch4j:1.14.0")
+
+    implementation("dev.kord:kord-core:0.10.0")
+
     implementation(kotlin("script-runtime"))
 }
 
