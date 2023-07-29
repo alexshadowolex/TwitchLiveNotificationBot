@@ -11,21 +11,36 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.toJavaInstant
 import org.slf4j.LoggerFactory
 import java.io.PrintStream
+import java.io.PrintWriter
+import java.io.StringWriter
 import java.time.format.DateTimeFormatterBuilder
+import javax.swing.JOptionPane
+import kotlin.system.exitProcess
 
 val logger: org.slf4j.Logger = LoggerFactory.getLogger("Bot")
 
-fun main() = application {
-    setupLogging()
+fun main() = try {
+    application {
+        setupLogging()
 
-    Window(
-        state = WindowState(size = DpSize(350.dp, 150.dp)),
-        title = "TwitchLiveNotificationBot",
-        onCloseRequest = ::exitApplication,
-        resizable = false
-    ) {
-        App()
+        Window(
+            state = WindowState(size = DpSize(350.dp, 150.dp)),
+            title = "TwitchLiveNotificationBot",
+            onCloseRequest = ::exitApplication,
+            resizable = false
+        ) {
+            App()
+        }
     }
+} catch (e: Throwable) {
+    JOptionPane.showMessageDialog(
+        null,
+        e.message + "\n" + StringWriter().also { e.printStackTrace(PrintWriter(it)) },
+        "InfoBox: File Debugger",
+        JOptionPane.INFORMATION_MESSAGE
+    )
+    logger.error("Error while executing program.", e)
+    exitProcess(0)
 }
 
 // Logging
