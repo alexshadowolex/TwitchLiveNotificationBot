@@ -7,5 +7,5 @@ object TwitchBotConfig {
     }
 
     val chatAccountToken = File("data\\twitchToken.txt").readText()
-    val channels: List<String> = properties.getProperty("channel").split(",")
+    val channels: List<String> = properties.getProperty("channels").split(",")
 }
