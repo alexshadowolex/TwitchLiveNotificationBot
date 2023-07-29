@@ -4,7 +4,6 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential
-import com.github.twitch4j.TwitchClient
 import com.github.twitch4j.TwitchClientBuilder
 import com.github.twitch4j.events.ChannelGoLiveEvent
 import dev.kord.core.Kord
@@ -65,11 +64,11 @@ suspend fun main() = try {
     exitProcess(0)
 }
 
-fun setupTwitchBot(discordClient: Kord): TwitchClient {
+fun setupTwitchBot(discordClient: Kord) {
     val twitchClient = TwitchClientBuilder.builder()
         .withEnableHelix(true)
         .withEnableChat(true)
-        .withChatAccount(OAuth2Credential("twitch", TwitchBotConfig.chatAccountToken))
+        .withDefaultAuthToken(OAuth2Credential("twitch", TwitchBotConfig.chatAccountToken))
         .build()
 
     for(channel in TwitchBotConfig.channels) {
@@ -78,32 +77,38 @@ fun setupTwitchBot(discordClient: Kord): TwitchClient {
             joinChannel(channel)
             logger.info("Connected to channel $channel")
         }
+        twitchClient.clientHelper.enableStreamEventListener(channel)
     }
 
-    twitchClient.eventManager.onEvent(ChannelGoLiveEvent::class.java) {
+
+    twitchClient.eventManager.onEvent(ChannelGoLiveEvent::class.java) { goLiveEvent ->
         CoroutineScope(Dispatchers.IO).launch {
-            sendMessageToLiveNotificationChannel(it.channel.name, discordClient)
+            sendMessageToLiveNotificationChannel(goLiveEvent, discordClient)
         }
     }
-
-    return twitchClient
 }
 
-suspend fun sendMessageToLiveNotificationChannel(userNameForLiveNotification: String, discordClient: Kord) {
-    val channel = discordClient.getChannelOf<TextChannel>(DiscordBotConfig.liveNotificationChannelId, EntitySupplyStrategy.cacheWithCachingRestFallback)
+suspend fun sendMessageToLiveNotificationChannel(goLiveEvent: ChannelGoLiveEvent, discordClient: Kord) {
+    val discordChannel = discordClient.getChannelOf<TextChannel>(DiscordBotConfig.liveNotificationChannelId, EntitySupplyStrategy.cacheWithCachingRestFallback)
         ?: error("Invalid channel ID.")
 
-    val channelName = channel.name
-    val channelId = channel.id
+    val discordChannelName = discordChannel.name
+    val discordChannelId = discordChannel.id
 
-    logger.info("User name for live notification: $userNameForLiveNotification | Channel Name: $channelName | Channel ID: $channelId")
+    logger.info("User name for live notification: ${goLiveEvent.channel.name} | Channel Name: $discordChannelName | Channel ID: $discordChannelId")
 
-    channel.createMessage(
-        "User \"$userNameForLiveNotification\" just went live on\n" +
-                "\nhttps://www.twitch.tv/$userNameForLiveNotification"
+    discordChannel.createMessage(
+        "User \"${goLiveEvent.channel.name}\" just went live with title \"${goLiveEvent.stream.title}\"" +
+                if(goLiveEvent.stream.gameName.isNotEmpty()) {
+                    " and game \"${goLiveEvent.stream.gameName}\""
+                } else {
+                    ""
+                } +
+                " on\n" +
+                "\nhttps://www.twitch.tv/${goLiveEvent.channel.name}"
     )
 
-    logger.info("Message created on Discord Channel $channelName")
+    logger.info("Message created on Discord Channel $discordChannelName")
 }
 
 // Logging
